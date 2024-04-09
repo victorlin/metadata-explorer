@@ -1,4 +1,6 @@
-## Installation
+# Metadata Explorer
+
+## Usage
 
 Set up conda environment
 
@@ -12,4 +14,10 @@ Install dependencies
 
 ```sh
 pip install -r requirements.txt
+```
+
+Run server
+
+```
+bokeh serve --show metadata-explorer.py
 ```

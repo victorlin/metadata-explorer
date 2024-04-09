@@ -1,6 +1,3 @@
-# Usage:
-#   bokeh serve --show bokeh-server.py
-
 from base64 import b64decode
 from datetime import datetime
 import io
