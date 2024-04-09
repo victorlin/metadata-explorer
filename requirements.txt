@@ -1,3 +1,4 @@
 bokeh
+cachetools
 pandas
 zstandard

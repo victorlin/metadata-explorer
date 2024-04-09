@@ -1,4 +1,5 @@
 from base64 import b64decode
+from cachetools import cached, TTLCache
 from datetime import datetime
 import io
 import pandas as pd
@@ -63,9 +64,14 @@ def validate_and_summarize(metadata: pd.DataFrame):
     return metadata
 
 
-def process_tsv(read_csv_input):
+@cached(cache=TTLCache(maxsize=1024, ttl=24*60*60))
+def get_metadata(read_csv_input):
     metadata = pd.read_csv(read_csv_input, delimiter='\t')
-    metadata = validate_and_summarize(metadata)
+    return validate_and_summarize(metadata)
+
+
+def process_tsv(read_csv_input):
+    metadata = get_metadata(read_csv_input)
     plot_per_month(metadata)
 
     unique_value_counts = [(col, metadata[col].nunique()) for col in metadata]
