@@ -65,6 +65,7 @@ def update_plots(metadata, column):
     p.y_range.start = 0
     p.x_range.range_padding = 0.1
     p.xgrid.grid_line_color = None
+    p.xaxis.major_label_orientation = "vertical"
     p.axis.minor_tick_line_color = None
     p.outline_line_color = None
     p.legend.location = "top_left"
