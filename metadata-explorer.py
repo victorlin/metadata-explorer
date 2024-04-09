@@ -160,8 +160,8 @@ def plot_stacked_per_month(metadata, column):
 
     p = figure(name=BAR_PLOT_NAME,
         x_range=months, height=350,
-        title="distribution over time (months)",
-        toolbar_location="below", tools = "pan,wheel_zoom,box_zoom,reset,hover",
+        title="Sequences per month",
+        toolbar_location="right", tools = "pan,wheel_zoom,box_zoom,reset,hover",
         tooltips="$name @time (n=@$name)",
         )
     p.vbar_stack(column_values, x='time', source=data, color=colors, legend_label=column_values)
