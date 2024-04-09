@@ -16,6 +16,15 @@ CATEGORY_LIMIT = 19
 
 
 REMOTE_DATASETS = [
+    ('https://data.nextstrain.org/files/workflows/dengue/metadata_all.tsv.zst', 'dengue/all'),
+    ('https://data.nextstrain.org/files/workflows/dengue/metadata_denv1.tsv.zst', 'dengue/denv1'),
+    ('https://data.nextstrain.org/files/workflows/dengue/metadata_denv2.tsv.zst', 'dengue/denv2'),
+    ('https://data.nextstrain.org/files/workflows/dengue/metadata_denv3.tsv.zst', 'dengue/denv3'),
+    ('https://data.nextstrain.org/files/workflows/dengue/metadata_denv4.tsv.zst', 'dengue/denv4'),
+    ('https://data.nextstrain.org/files/workflows/forecasts-ncov/open/nextstrain_clades/global.tsv.gz', 'forecasts-ncov/open/nextstrain_clades/global'),
+    ('https://data.nextstrain.org/files/workflows/forecasts-ncov/open/nextstrain_clades/usa.tsv.gz', 'forecasts-ncov/open/nextstrain_clades/usa'),
+    ('https://data.nextstrain.org/files/workflows/forecasts-ncov/open/pango_lineages/global.tsv.gz', 'forecasts-ncov/open/pango_lineages/global'),
+    ('https://data.nextstrain.org/files/workflows/forecasts-ncov/open/pango_lineages/usa.tsv.gz', 'forecasts-ncov/open/pango_lineages/usa'),
     ('https://data.nextstrain.org/files/workflows/measles/metadata.tsv.zst', 'measles'),
     ('https://data.nextstrain.org/files/workflows/mpox/metadata.tsv.gz', 'mpox'),
     ('https://data.nextstrain.org/files/ncov/open/global/metadata.tsv.xz', 'ncov/open/global'),
@@ -25,6 +34,8 @@ REMOTE_DATASETS = [
     ('https://data.nextstrain.org/files/ncov/open/north-america/metadata.tsv.xz', 'ncov/open/north-america'),
     ('https://data.nextstrain.org/files/ncov/open/oceania/metadata.tsv.xz', 'ncov/open/oceania'),
     ('https://data.nextstrain.org/files/ncov/open/south-america/metadata.tsv.xz', 'ncov/open/south-america'),
+    ('https://data.nextstrain.org/files/workflows/rsv/a/metadata.tsv.gz', 'rsv/a'),
+    ('https://data.nextstrain.org/files/workflows/rsv/b/metadata.tsv.gz', 'rsv/b'),
     ('https://data.nextstrain.org/files/workflows/zika/metadata.tsv.zst', 'zika'),
 ]
 
@@ -34,6 +45,7 @@ def validate_and_summarize(metadata: pd.DataFrame):
         raise Exception("Metadata must have a date column.")
 
     n_rows = len(metadata)
+    # TODO: Use some form of numerical value so desired_num_ticks can be used to avoid abundance of date labels
     metadata['date_month'] = pd.to_datetime(metadata['date'], errors='coerce').dt.strftime("%Y-%m")
     metadata.dropna(subset=['date_month'], inplace=True)
     n_valid_rows = len(metadata)
@@ -58,8 +70,8 @@ def process_tsv(read_csv_input):
 
     unique_value_counts = [(col, metadata[col].nunique()) for col in metadata]
 
-    # Remove columns that have less than 2 and more than 100 unique values
-    unique_value_counts = [(col, n) for col, n in unique_value_counts if 2 <= n <= 100]
+    # Remove columns that have the same value in all rows
+    unique_value_counts = [(col, n) for col, n in unique_value_counts if n >= 2]
     sorted_counts = sorted(unique_value_counts, key=lambda x: x[1])
 
     def column_selector_callback(attr, _old_value, column):
@@ -87,8 +99,7 @@ def load_local_file(attr, _old_value, file_contents):
 def load_remote_file(attr, _old_value, url):
     assert attr == 'value'
 
-    print(f'Loading dataset rom {url}...')
-    # grab file
+    print(f'Loading metadata from {url}...')
     process_tsv(url)
     print('Successfully loaded metadata.')
 
@@ -109,7 +120,7 @@ def plot_per_month(metadata):
     p = figure(name=BAR_PLOT_NAME,
         x_range=months, height=350,
         title="Sequences per month",
-        toolbar_location="below", tools = "pan,wheel_zoom,box_zoom,reset,hover",
+        toolbar_location="right", tools = "pan,wheel_zoom,box_zoom,reset,hover",
         tooltips="@x (n=@top)",
         )
     p.vbar(x=months, top=counts)
@@ -175,7 +186,10 @@ def replace_layout(name, new_layout, root_layout=None):
             replace_layout(name, new_layout, root_layout=layout)
 
 
-about_text = Div(text="<h1>Nextstrain Metadata Explorer</h1>")
+about_text = Div(text="""
+    <h1>Nextstrain Metadata Explorer</h1>
+    <a href="https://github.com/victorlin/metadata-explorer">source code</a>
+""")
 
 file_input = FileInput(title="Select a TSV file", accept=".tsv")
 file_input.on_change('value', load_local_file)
@@ -198,7 +212,7 @@ column_selector = Select(
 
 summary = Div(name=SUMMARY_NAME, text="")
 
-p = figure(name=BAR_PLOT_NAME, height=350)
+p = figure(name=BAR_PLOT_NAME, height=350, toolbar_location=None)
 
 curdoc().add_root(column(
     about_text,
