@@ -6,7 +6,7 @@ from datetime import datetime
 import io
 import pandas as pd
 
-from bokeh.layouts import column
+from bokeh.layouts import column, row
 from bokeh.models import FileInput, Select, Div
 from bokeh.palettes import Category20
 from bokeh.plotting import figure, curdoc
@@ -18,13 +18,23 @@ BAR_PLOT_NAME = 'plot1'
 CATEGORY_LIMIT = 19
 
 
-def load_file(attr, _old_value, new_value):
-    assert attr == 'value'
+NCOV_DATASETS = [
+    ('https://data.nextstrain.org/files/ncov/open/global/metadata.tsv.xz', 'ncov/open/global'),
+    ('https://data.nextstrain.org/files/ncov/open/africa/metadata.tsv.xz', 'ncov/open/africa'),
+    ('https://data.nextstrain.org/files/ncov/open/asia/metadata.tsv.xz', 'ncov/open/asia'),
+    ('https://data.nextstrain.org/files/ncov/open/europe/metadata.tsv.xz', 'ncov/open/europe'),
+    ('https://data.nextstrain.org/files/ncov/open/north-america/metadata.tsv.xz', 'ncov/open/north-america'),
+    ('https://data.nextstrain.org/files/ncov/open/oceania/metadata.tsv.xz', 'ncov/open/oceania'),
+    ('https://data.nextstrain.org/files/ncov/open/south-america/metadata.tsv.xz', 'ncov/open/south-america'),
+    # TODO: handle ambiguous dates to support the following
+    # ('https://data.nextstrain.org/files/workflows/mpox/metadata.tsv.gz', 'mpox'),
+    # ('https://data.nextstrain.org/files/zika/metadata.tsv.zst', 'zika'),
+    # ('https://data.nextstrain.org/files/workflows/measles/metadata.tsv.zst', 'measles'),
+]
 
-    print('Loading metadata...')
-    file = io.BytesIO(b64decode(new_value))
-    metadata = pd.read_csv(file, delimiter='\t')
-    print('Successfully loaded metadata.')
+
+def process_tsv(read_csv_input):
+    metadata = pd.read_csv(read_csv_input, delimiter='\t')
     # TODO: validate date column and values
     plot_per_month(metadata)
 
@@ -47,6 +57,24 @@ def load_file(attr, _old_value, new_value):
     )
     column_selector.on_change('value', column_selector_callback)
     replace_layout(COLUMN_SELECTOR_LAYOUT_NAME, column_selector)
+
+
+def load_local_file(attr, _old_value, file_contents):
+    assert attr == 'value'
+
+    print('Loading metadata...')
+    file = io.BytesIO(b64decode(file_contents))
+    process_tsv(file)
+    print('Successfully loaded metadata.')
+
+
+def load_remote_file(attr, _old_value, url):
+    assert attr == 'value'
+
+    print(f'Loading dataset rom {url}...')
+    # grab file
+    process_tsv(url)
+    print('Successfully loaded metadata.')
 
 
 def sort_months(months):
@@ -119,23 +147,50 @@ def plot_stacked_per_month(metadata, column):
     replace_layout(BAR_PLOT_NAME, p)
 
 
-def replace_layout(name, new_layout):
-    sublayouts = curdoc().get_model_by_name(ROOT_LAYOUT).children
+def replace_layout(name, new_layout, root_layout=None):
+    if root_layout is None:
+        root_layout = curdoc().get_model_by_name(ROOT_LAYOUT)
+
+    children = root_layout.children
     old_layout = curdoc().get_model_by_name(name)
-    for i, layout in enumerate(sublayouts):
+    for i, layout in enumerate(children):
         if layout == old_layout:
-            sublayouts[i] = new_layout
+            children[i] = new_layout
+            return
+        elif hasattr(layout, 'children'):
+            replace_layout(name, new_layout, root_layout=layout)
 
 
-file_input = FileInput(title="Select files:", accept=".tsv")
-file_input.on_change('value', load_file)
+about_text = Div(text="<h1>Nextstrain Metadata Explorer</h1>")
+
+file_input = FileInput(title="Select a TSV file", accept=".tsv")
+file_input.on_change('value', load_local_file)
+
+or_text = Div(text="OR")
+
+dataset_selector = Select(
+    name='ncov dataset',
+    title='Load a public dataset',
+    options=NCOV_DATASETS,
+)
+dataset_selector.on_change('value', load_remote_file)
+
 column_selector = Select(
     name=COLUMN_SELECTOR_LAYOUT_NAME,
     title='Select column (select metadata first)',
     options=[],
     disabled=True,
 )
+
 summary = Div(name=SUMMARY_NAME, text="")
+
 p = figure(name=BAR_PLOT_NAME, height=350)
 
-curdoc().add_root(column(file_input, column_selector, summary, p, name=ROOT_LAYOUT))
+curdoc().add_root(column(
+    about_text,
+    row(file_input, or_text, dataset_selector),
+    column_selector,
+    summary,
+    p,
+    name=ROOT_LAYOUT,
+))
