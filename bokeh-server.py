@@ -7,12 +7,13 @@ import io
 import pandas as pd
 
 from bokeh.layouts import column
-from bokeh.models import FileInput, Select
+from bokeh.models import FileInput, Select, Div
 from bokeh.palettes import Category20
 from bokeh.plotting import figure, curdoc
 
 ROOT_LAYOUT = 'root'
 COLUMN_SELECTOR_LAYOUT_NAME = 'column_selector'
+SUMMARY_NAME = 'summary'
 BAR_PLOT_NAME = 'plot1'
 CATEGORY_LIMIT = 19
 
@@ -24,7 +25,10 @@ def load_file(attr, _old_value, new_value):
     file = io.BytesIO(b64decode(new_value))
     metadata = pd.read_csv(file, delimiter='\t')
     print('Successfully loaded metadata.')
+    # TODO: validate date column and values
     plot_per_month(metadata)
+
+    replace_layout(SUMMARY_NAME, Div(name=SUMMARY_NAME, text=f"Number of rows: {len(metadata)}"))
 
     unique_value_counts = [(col, metadata[col].nunique()) for col in metadata]
 
@@ -131,6 +135,7 @@ column_selector = Select(
     options=[],
     disabled=True,
 )
+summary = Div(name=SUMMARY_NAME, text="")
 p = figure(name=BAR_PLOT_NAME, height=350)
 
-curdoc().add_root(column(file_input, column_selector, p, name=ROOT_LAYOUT))
+curdoc().add_root(column(file_input, column_selector, summary, p, name=ROOT_LAYOUT))
