@@ -18,7 +18,9 @@ BAR_PLOT_NAME = 'plot1'
 CATEGORY_LIMIT = 19
 
 
-NCOV_DATASETS = [
+REMOTE_DATASETS = [
+    ('https://data.nextstrain.org/files/workflows/measles/metadata.tsv.zst', 'measles'),
+    ('https://data.nextstrain.org/files/workflows/mpox/metadata.tsv.gz', 'mpox'),
     ('https://data.nextstrain.org/files/ncov/open/global/metadata.tsv.xz', 'ncov/open/global'),
     ('https://data.nextstrain.org/files/ncov/open/africa/metadata.tsv.xz', 'ncov/open/africa'),
     ('https://data.nextstrain.org/files/ncov/open/asia/metadata.tsv.xz', 'ncov/open/asia'),
@@ -26,19 +28,36 @@ NCOV_DATASETS = [
     ('https://data.nextstrain.org/files/ncov/open/north-america/metadata.tsv.xz', 'ncov/open/north-america'),
     ('https://data.nextstrain.org/files/ncov/open/oceania/metadata.tsv.xz', 'ncov/open/oceania'),
     ('https://data.nextstrain.org/files/ncov/open/south-america/metadata.tsv.xz', 'ncov/open/south-america'),
-    # TODO: handle ambiguous dates to support the following
-    # ('https://data.nextstrain.org/files/workflows/mpox/metadata.tsv.gz', 'mpox'),
-    # ('https://data.nextstrain.org/files/zika/metadata.tsv.zst', 'zika'),
-    # ('https://data.nextstrain.org/files/workflows/measles/metadata.tsv.zst', 'measles'),
+    ('https://data.nextstrain.org/files/workflows/zika/metadata.tsv.zst', 'zika'),
 ]
+
+
+def validate_and_summarize(metadata: pd.DataFrame):
+    if 'date' not in metadata.columns:
+        raise Exception("Metadata must have a date column.")
+
+    n_rows = len(metadata)
+    metadata['date_month'] = pd.to_datetime(metadata['date'], errors='coerce').dt.strftime("%Y-%m")
+    metadata.dropna(subset=['date_month'], inplace=True)
+    n_valid_rows = len(metadata)
+    missing_dates_warning = ""
+    if n_rows - n_valid_rows > 0:
+        missing_dates_warning = f"""
+            {n_rows - n_valid_rows} were dropped due to ambiguous/missing date
+            information. A future version of this app may be able to extract months
+            from ambiguous dates.
+        """
+    replace_layout(SUMMARY_NAME, Div(name=SUMMARY_NAME, text=f"""
+        Metadata has {n_rows} rows. {missing_dates_warning}
+    """))
+
+    return metadata
 
 
 def process_tsv(read_csv_input):
     metadata = pd.read_csv(read_csv_input, delimiter='\t')
-    # TODO: validate date column and values
+    metadata = validate_and_summarize(metadata)
     plot_per_month(metadata)
-
-    replace_layout(SUMMARY_NAME, Div(name=SUMMARY_NAME, text=f"Number of rows: {len(metadata)}"))
 
     unique_value_counts = [(col, metadata[col].nunique()) for col in metadata]
 
@@ -85,7 +104,6 @@ def sort_months(months):
 
 
 def plot_per_month(metadata):
-    metadata['date_month'] = pd.to_datetime(metadata['date']).dt.strftime("%Y-%m")
     months = sort_months(metadata['date_month'].unique().tolist())
 
     count_by_month = metadata['date_month'].value_counts(sort=False).to_dict()
@@ -93,7 +111,7 @@ def plot_per_month(metadata):
 
     p = figure(name=BAR_PLOT_NAME,
         x_range=months, height=350,
-        title="distribution over time (months)",
+        title="Sequences per month",
         toolbar_location="below", tools = "pan,wheel_zoom,box_zoom,reset,hover",
         tooltips="@x (n=@top)",
         )
@@ -110,7 +128,6 @@ def plot_per_month(metadata):
 
 
 def plot_stacked_per_month(metadata, column):
-    metadata['date_month'] = pd.to_datetime(metadata['date']).dt.strftime("%Y-%m")
     months = sort_months(metadata['date_month'].unique().tolist())
 
     # Convert column to string to ensure categorical
@@ -169,9 +186,9 @@ file_input.on_change('value', load_local_file)
 or_text = Div(text="OR")
 
 dataset_selector = Select(
-    name='ncov dataset',
+    name='dataset',
     title='Load a public dataset',
-    options=NCOV_DATASETS,
+    options=REMOTE_DATASETS,
 )
 dataset_selector.on_change('value', load_remote_file)
 
