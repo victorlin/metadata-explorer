@@ -12,6 +12,7 @@ from bokeh.plotting import figure, curdoc
 ROOT_LAYOUT = 'root'
 COLUMN_SELECTOR_LAYOUT_NAME = 'column_selector'
 SUMMARY_NAME = 'summary'
+LOADING_NAME = 'loading'
 BAR_PLOT_NAME = 'plot1'
 CATEGORY_LIMIT = 19
 DEFAULT_SELECTION = ''
@@ -40,6 +41,26 @@ REMOTE_DATASETS = [
     ('https://data.nextstrain.org/files/workflows/rsv/b/metadata.tsv.gz', 'rsv/b'),
     ('https://data.nextstrain.org/files/workflows/zika/metadata.tsv.zst', 'zika'),
 ]
+
+
+# inspired by:
+# https://discourse.bokeh.org/t/loading-indicator-when-data-is-being-updated/6985/6
+# https://discourse.bokeh.org/t/show-loading-sign-during-calculations/4410/2
+def busy(func):
+    '''
+    Decorator function to display a loading animation when the program is working on something
+    '''
+    def wrapper(*args, **kwargs):
+        curdoc().select_one({'name': LOADING_NAME}).text = "Loading..."
+
+        def work():
+            # run the decorated function
+            func(*args, **kwargs)
+            curdoc().select_one({'name': LOADING_NAME}).text = ""
+
+        curdoc().add_next_tick_callback(work)
+
+    return wrapper
 
 
 def validate_and_summarize(metadata: pd.DataFrame):
@@ -71,6 +92,7 @@ def get_metadata(read_csv_input):
     return validate_and_summarize(metadata)
 
 
+@busy
 def process_tsv(read_csv_input):
     metadata = get_metadata(read_csv_input)
     plot_per_month(metadata)
@@ -123,6 +145,7 @@ def sort_months(months):
     return [dt.strftime("%Y-%m") for dt in sorted_datetime_objects]
 
 
+@busy
 def plot_per_month(metadata):
     months = sort_months(metadata['date_month'].unique().tolist())
 
@@ -149,6 +172,7 @@ def plot_per_month(metadata):
     replace_layout(BAR_PLOT_NAME, p)
 
 
+@busy
 def plot_stacked_per_month(metadata, column):
     months = sort_months(metadata['date_month'].unique().tolist())
 
@@ -227,6 +251,7 @@ column_selector = Select(
 )
 
 summary = Div(name=SUMMARY_NAME, text="")
+loading = Div(name=LOADING_NAME, text="")
 
 p = figure(
     name=BAR_PLOT_NAME,
@@ -239,6 +264,7 @@ curdoc().add_root(column(
     row(file_input, or_text, dataset_selector),
     column_selector,
     summary,
+    loading,
     p,
     name=ROOT_LAYOUT,
     sizing_mode="stretch_width",
