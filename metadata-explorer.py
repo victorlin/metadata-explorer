@@ -86,7 +86,7 @@ def process_tsv(read_csv_input):
 
     column_selector = Select(
         name=COLUMN_SELECTOR_LAYOUT_NAME,
-        title='Select column',
+        title='Color By',
         options=[(col, f"{col} (n={count})") for col, count in sorted_counts],
     )
     column_selector.on_change('value', column_selector_callback)
@@ -211,7 +211,7 @@ dataset_selector.on_change('value', load_remote_file)
 
 column_selector = Select(
     name=COLUMN_SELECTOR_LAYOUT_NAME,
-    title='Select column (select metadata first)',
+    title='Color By (select metadata first)',
     options=[],
     disabled=True,
 )
