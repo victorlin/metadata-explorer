@@ -123,8 +123,10 @@ def plot_per_month(metadata):
     count_by_month = metadata['date_month'].value_counts(sort=False).to_dict()
     counts = [count_by_month[month] for month in months]
 
-    p = figure(name=BAR_PLOT_NAME,
-        x_range=months, height=350,
+    p = figure(
+        name=BAR_PLOT_NAME,
+        sizing_mode="stretch_width",
+        x_range=months,
         title="Sequences per month",
         toolbar_location="right", tools = "pan,wheel_zoom,box_zoom,reset,hover",
         tooltips="@x (n=@top)",
@@ -158,8 +160,10 @@ def plot_stacked_per_month(metadata, column):
 
     colors = Category20[len(column_values)]
 
-    p = figure(name=BAR_PLOT_NAME,
-        x_range=months, height=350,
+    p = figure(
+        name=BAR_PLOT_NAME,
+        sizing_mode="stretch_width",
+        x_range=months,
         title="Sequences per month",
         toolbar_location="right", tools = "pan,wheel_zoom,box_zoom,reset,hover",
         tooltips="$name @time (n=@$name)",
@@ -218,7 +222,11 @@ column_selector = Select(
 
 summary = Div(name=SUMMARY_NAME, text="")
 
-p = figure(name=BAR_PLOT_NAME, height=350, toolbar_location=None)
+p = figure(
+    name=BAR_PLOT_NAME,
+    sizing_mode="stretch_width",
+    toolbar_location=None,
+)
 
 curdoc().add_root(column(
     about_text,
@@ -227,4 +235,5 @@ curdoc().add_root(column(
     summary,
     p,
     name=ROOT_LAYOUT,
+    sizing_mode="stretch_width",
 ))
