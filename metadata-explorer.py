@@ -77,8 +77,8 @@ def process_tsv(read_csv_input):
 
     unique_value_counts = [(col, metadata[col].nunique()) for col in metadata]
 
-    # Remove columns that have the same value in all rows
-    unique_value_counts = [(col, n) for col, n in unique_value_counts if n >= 2]
+    # Only include columns that have at least 3 unique values
+    unique_value_counts = [(col, n) for col, n in unique_value_counts if n >= 3]
     sorted_counts = sorted(unique_value_counts, key=lambda x: x[1])
 
     def column_selector_callback(attr, _old_value, column):
