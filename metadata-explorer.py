@@ -170,7 +170,7 @@ def plot_stacked_per_month(metadata, column):
         name=BAR_PLOT_NAME,
         sizing_mode="stretch_width",
         x_range=months,
-        title="Sequences per month",
+        title=f"Sequences per month colored by {column!r}",
         toolbar_location="right", tools = "pan,wheel_zoom,box_zoom,reset,hover",
         tooltips="$name @time (n=@$name)",
         )
