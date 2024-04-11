@@ -14,6 +14,7 @@ COLUMN_SELECTOR_LAYOUT_NAME = 'column_selector'
 SUMMARY_NAME = 'summary'
 BAR_PLOT_NAME = 'plot1'
 CATEGORY_LIMIT = 19
+DEFAULT_SELECTION = ''
 
 
 REMOTE_DATASETS = [
@@ -82,12 +83,15 @@ def process_tsv(read_csv_input):
 
     def column_selector_callback(attr, _old_value, column):
         assert attr == 'value'
+        if column == DEFAULT_SELECTION:
+            return
+
         plot_stacked_per_month(metadata, column)
 
     column_selector = Select(
         name=COLUMN_SELECTOR_LAYOUT_NAME,
         title='Color By',
-        options=[(col, f"{col} (n={count})") for col, count in sorted_counts],
+        options=[DEFAULT_SELECTION, *((col, f"{col} (n={count})") for col, count in sorted_counts)],
     )
     column_selector.on_change('value', column_selector_callback)
     replace_layout(COLUMN_SELECTOR_LAYOUT_NAME, column_selector)
@@ -104,6 +108,8 @@ def load_local_file(attr, _old_value, file_contents):
 
 def load_remote_file(attr, _old_value, url):
     assert attr == 'value'
+    if url == DEFAULT_SELECTION:
+        return
 
     print(f'Loading metadata from {url}...')
     process_tsv(url)
@@ -209,7 +215,7 @@ or_text = Div(text="OR")
 dataset_selector = Select(
     name='dataset',
     title='Load a public dataset',
-    options=REMOTE_DATASETS,
+    options= [DEFAULT_SELECTION, *REMOTE_DATASETS],
 )
 dataset_selector.on_change('value', load_remote_file)
 
