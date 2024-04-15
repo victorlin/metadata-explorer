@@ -4,8 +4,9 @@ from datetime import datetime
 import io
 import pandas as pd
 
+from bokeh.events import ValueSubmit
 from bokeh.layouts import column, row
-from bokeh.models import FileInput, Select, Div
+from bokeh.models import FileInput, Select, Div, TextInput
 from bokeh.palettes import Category20
 from bokeh.plotting import figure, curdoc
 
@@ -119,7 +120,7 @@ def process_tsv(read_csv_input):
     replace_layout(COLUMN_SELECTOR_LAYOUT_NAME, column_selector)
 
 
-def load_local_file(attr, _old_value, file_contents):
+def local_file_changed(attr, _old_value, file_contents):
     assert attr == 'value'
 
     print('Loading metadata...')
@@ -128,14 +129,22 @@ def load_local_file(attr, _old_value, file_contents):
     print('Successfully loaded metadata.')
 
 
-def load_remote_file(attr, _old_value, url):
+def load_remote_file(url):
+    print(f'Loading metadata from {url}...')
+    process_tsv(url)
+    print('Successfully loaded metadata.')
+
+
+def dropdown_url_changed(attr, _old_value, url):
     assert attr == 'value'
     if url == DEFAULT_SELECTION:
         return
 
-    print(f'Loading metadata from {url}...')
-    process_tsv(url)
-    print('Successfully loaded metadata.')
+    load_remote_file(url)
+
+
+def custom_url_submitted(event):
+    load_remote_file(event.value)
 
 
 def sort_months(months):
@@ -232,16 +241,17 @@ about_text = Div(text="""
 """)
 
 file_input = FileInput(title="Select a TSV file", accept=".tsv")
-file_input.on_change('value', load_local_file)
-
-or_text = Div(text="OR")
+file_input.on_change('value', local_file_changed)
 
 dataset_selector = Select(
     name='dataset',
     title='Load a public dataset',
     options= [DEFAULT_SELECTION, *REMOTE_DATASETS],
 )
-dataset_selector.on_change('value', load_remote_file)
+dataset_selector.on_change('value', dropdown_url_changed)
+
+url_input = TextInput(title="URL to file")
+url_input.on_event(ValueSubmit, custom_url_submitted)
 
 column_selector = Select(
     name=COLUMN_SELECTOR_LAYOUT_NAME,
@@ -261,7 +271,7 @@ p = figure(
 
 curdoc().add_root(column(
     about_text,
-    row(file_input, or_text, dataset_selector),
+    row(file_input, Div(text="OR"), dataset_selector, Div(text="OR"), url_input),
     column_selector,
     summary,
     loading,
