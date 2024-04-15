@@ -138,14 +138,14 @@ def local_file_changed(attr, _old_value, file_contents):
 
 
 def load_remote_file(url):
-    set_loading_text(f"Loading {url}...")
+    set_loading_text(f"Loading {url} ...")
 
     def work():
         try:
             response = requests.get(url)
             with xopen(io.BytesIO(response.content)) as f:
                 initial_load(f)
-            set_loading_text("Successfully loaded.")
+            set_loading_text(f"Successfully loaded {url}")
         except Exception as e:
             set_loading_text(f"Failed to load: {e}")
 
@@ -270,7 +270,7 @@ dataset_selector = Select(
 )
 dataset_selector.on_change('value', dropdown_url_changed)
 
-url_input = TextInput(title="URL to file")
+url_input = TextInput(title="URL to file (<ENTER> to load)", sizing_mode="stretch_width", max_width=500)
 url_input.on_event(ValueSubmit, custom_url_submitted)
 
 column_selector = Select(
@@ -291,7 +291,8 @@ p = figure(
 
 curdoc().add_root(column(
     about_text,
-    row(file_input, Div(text="OR"), dataset_selector, Div(text="OR"), url_input),
+    row(file_input, Div(text="OR"), dataset_selector, Div(text="OR"), url_input,
+        sizing_mode="stretch_width"),
     column_selector,
     summary,
     loading,
