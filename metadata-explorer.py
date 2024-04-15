@@ -49,15 +49,15 @@ REMOTE_DATASETS = [
 # https://discourse.bokeh.org/t/show-loading-sign-during-calculations/4410/2
 def busy(func):
     '''
-    Decorator function to display a loading animation when the program is working on something
+    Decorator function to display loading text when the program is working on something
     '''
     def wrapper(*args, **kwargs):
-        curdoc().select_one({'name': LOADING_NAME}).text = "Loading..."
+        set_loading_text("Loading...")
 
         def work():
             # run the decorated function
             func(*args, **kwargs)
-            curdoc().select_one({'name': LOADING_NAME}).text = ""
+            set_loading_text("")
 
         curdoc().add_next_tick_callback(work)
 
@@ -93,7 +93,6 @@ def get_metadata(read_csv_input):
     return validate_and_summarize(metadata)
 
 
-@busy
 def process_tsv(read_csv_input):
     metadata = get_metadata(read_csv_input)
     plot_per_month(metadata)
@@ -123,16 +122,30 @@ def process_tsv(read_csv_input):
 def local_file_changed(attr, _old_value, file_contents):
     assert attr == 'value'
 
-    print('Loading metadata...')
-    file = io.BytesIO(b64decode(file_contents))
-    process_tsv(file)
-    print('Successfully loaded metadata.')
+    set_loading_text(f"Loading local file...")
+
+    def work():
+        try:
+            file = io.BytesIO(b64decode(file_contents))
+            process_tsv(file)
+            set_loading_text("Successfully loaded.")
+        except Exception as e:
+            set_loading_text(f"Failed to load: {e}")
+
+    curdoc().add_next_tick_callback(work)
 
 
 def load_remote_file(url):
-    print(f'Loading metadata from {url}...')
-    process_tsv(url)
-    print('Successfully loaded metadata.')
+    set_loading_text(f"Loading {url}...")
+
+    def work():
+        try:
+            process_tsv(url)
+            set_loading_text("Successfully loaded.")
+        except Exception as e:
+            set_loading_text(f"Failed to load: {e}")
+
+    curdoc().add_next_tick_callback(work)
 
 
 def dropdown_url_changed(attr, _old_value, url):
@@ -233,6 +246,10 @@ def replace_layout(name, new_layout, root_layout=None):
             return
         elif hasattr(layout, 'children'):
             replace_layout(name, new_layout, root_layout=layout)
+
+
+def set_loading_text(text):
+    curdoc().select_one({'name': LOADING_NAME}).text = text
 
 
 about_text = Div(text="""
