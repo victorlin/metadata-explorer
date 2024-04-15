@@ -93,7 +93,7 @@ def get_metadata(read_csv_input):
     return validate_and_summarize(metadata)
 
 
-def process_tsv(read_csv_input):
+def initial_load(read_csv_input):
     metadata = get_metadata(read_csv_input)
     plot_per_month(metadata)
 
@@ -127,7 +127,7 @@ def local_file_changed(attr, _old_value, file_contents):
     def work():
         try:
             file = io.BytesIO(b64decode(file_contents))
-            process_tsv(file)
+            initial_load(file)
             set_loading_text("Successfully loaded.")
         except Exception as e:
             set_loading_text(f"Failed to load: {e}")
@@ -140,7 +140,7 @@ def load_remote_file(url):
 
     def work():
         try:
-            process_tsv(url)
+            initial_load(url)
             set_loading_text("Successfully loaded.")
         except Exception as e:
             set_loading_text(f"Failed to load: {e}")
