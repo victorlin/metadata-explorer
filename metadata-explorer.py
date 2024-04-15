@@ -1,8 +1,10 @@
 from base64 import b64decode
 from cachetools import cached, TTLCache
 from datetime import datetime
+from xopen import xopen
 import io
 import pandas as pd
+import requests
 
 from bokeh.events import ValueSubmit
 from bokeh.layouts import column, row
@@ -140,7 +142,9 @@ def load_remote_file(url):
 
     def work():
         try:
-            initial_load(url)
+            response = requests.get(url)
+            with xopen(io.BytesIO(response.content)) as f:
+                initial_load(f)
             set_loading_text("Successfully loaded.")
         except Exception as e:
             set_loading_text(f"Failed to load: {e}")
