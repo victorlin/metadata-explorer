@@ -171,7 +171,6 @@ def sort_months(months):
     return [dt.strftime("%Y-%m") for dt in sorted_datetime_objects]
 
 
-@busy
 def plot_per_month(metadata):
     months = sort_months(metadata['date_month'].unique().tolist())
 
