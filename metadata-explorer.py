@@ -128,9 +128,9 @@ def local_file_changed(attr, _old_value, file_contents):
 
     def work():
         try:
-            file = io.BytesIO(b64decode(file_contents))
-            initial_load(file)
-            set_loading_text("Successfully loaded.")
+            with xopen(io.BytesIO(b64decode(file_contents))) as f:
+                initial_load(f)
+            set_loading_text("Successfully loaded local file.")
         except Exception as e:
             set_loading_text(f"Failed to load: {e}")
 
@@ -260,7 +260,7 @@ about_text = Div(text="""
     <a href="https://github.com/victorlin/metadata-explorer">source code</a>
 """)
 
-file_input = FileInput(title="Select a TSV file", accept=".tsv")
+file_input = FileInput(title="Select a metadata file")
 file_input.on_change('value', local_file_changed)
 
 dataset_selector = Select(
